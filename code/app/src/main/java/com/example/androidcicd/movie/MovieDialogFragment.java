@@ -11,6 +11,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -100,39 +101,52 @@ public class MovieDialogFragment extends DialogFragment {
         dialog.setOnShowListener(d -> {
             Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
             positiveButton.setOnClickListener(v -> {
-                if (!validInput())
-                    return;
+                if (!validInput()) return;
+
                 String title = editMovieName.getText().toString().trim();
                 String genre = editMovieGenre.getText().toString().trim();
                 int year = Integer.parseInt(editMovieYear.getText().toString().trim());
-                if (tag != null && tag.equals( "Movie Details")) {
-                    movieProvider.updateMovie(movie, title, genre, year);
-                } else {
-                    movieProvider.addMovie(new Movie(title, genre, year));
-                }
-                dialog.dismiss();
+
+                // Check if movie with the same title already exists
+                movieProvider.movieExists(title).addOnSuccessListener(exists -> {
+                    if (exists) {
+                        editMovieName.setError("A movie with this title already exists!");
+                    } else {
+                        if (tag != null && tag.equals("Movie Details")) {
+                            movieProvider.updateMovie(movie, title, genre, year);
+                        } else {
+                            movieProvider.addMovie(new Movie(title, genre, year));
+                        }
+                        dialog.dismiss();
+                    }
+                }).addOnFailureListener(e -> {
+                    Toast.makeText(getContext(), "Error checking for existing movie", Toast.LENGTH_SHORT).show();
+                });
             });
         });
+
         return dialog;
     }
-
-    private boolean validInput() {
-        Editable title = editMovieName.getText();
-        Editable genre = editMovieGenre.getText();
-        Editable year = editMovieYear.getText();
-        if (isEmpty(title)) {
-            editMovieName.setError("Movie name cannot be empty!");
-            return false;
-        } else if (isEmpty(genre)){
-            editMovieGenre.setError("Movie genre cannot be empty!");
-            return false;
-        } else if (isEmpty(year)) {
-            editMovieYear.setError("Movie year cannot be empty!");
-            return false;
-        } else if (!isDigitsOnly(editMovieYear.getText())) {
-            editMovieYear.setError("Movie year must be numeric!");
-            return false;
+        private boolean validInput() {
+            Editable title = editMovieName.getText();
+            Editable genre = editMovieGenre.getText();
+            Editable year = editMovieYear.getText();
+            if (isEmpty(title)) {
+                editMovieName.setError("Movie name cannot be empty!");
+                return false;
+            } else if (isEmpty(genre)){
+                editMovieGenre.setError("Movie genre cannot be empty!");
+                return false;
+            } else if (isEmpty(year)) {
+                editMovieYear.setError("Movie year cannot be empty!");
+                return false;
+            } else if (!isDigitsOnly(editMovieYear.getText())) {
+                editMovieYear.setError("Movie year must be numeric!");
+                return false;
+            }
+            return true;
         }
-        return true;
-    }
+
+
+
 }
